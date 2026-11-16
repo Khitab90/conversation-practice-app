@@ -8,7 +8,7 @@ Rep is a mobile app for practising conversations out loud. You speak, an AI char
 
 Introverts usually know roughly what good conversation looks like. What is missing is a low-stakes place to rehearse it out loud, because reading advice does not build the reflex and practising on real people feels expensive when a skill is new.
 
-The content is based on a research summary of the conversation literature, kept in this repository as *The Introvert's Conversation Playbook*. The product design is in [PRD.md](PRD.md).
+The content is based on a research summary of the conversation literature: studies on talking to strangers, follow-up questions, and how people underestimate how well conversations go.
 
 ## Screens
 
@@ -111,7 +111,6 @@ Both Gemini models are used on the free tier. On that tier, conversations may be
 | [`rep/db.ts`](rep/db.ts) | Saved progress |
 | [`rep/check.ts`](rep/check.ts) | Checks for the content logic |
 | [`voice-test/`](voice-test) | A one-page browser test of the Gemini Live API |
-| [`PRD.md`](PRD.md) | Product design, decisions and test results |
 
 ## Running it
 
@@ -154,6 +153,6 @@ This is a first version, tested in the iOS simulator only.
 - The project stays on Expo SDK 54 so that it builds with Xcode 16. A `postinstall` script patches one line of `react-native-audio-api` for the same reason.
 - Android and real iPhones are untested.
 
-Planned next: more chapters and events, feedback on how you sound (pace, volume, clarity) with short voice exercises, onboarding, and settings. The full list is in [PRD.md](PRD.md).
+Planned next: more chapters and events, feedback on how you sound (pace, volume, clarity) with short voice exercises, onboarding, and settings.
 
 This app is practice, not treatment. If fear of conversation is stopping daily life, a professional can help.
