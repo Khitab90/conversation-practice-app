@@ -2,17 +2,19 @@ import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 import { ReactNode, useEffect, useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
-import { Brief, chapters, EventDef, events, makeBrief, MASTERY_ROUNDS, Moment, PartnerStyle, pathStates, Skill } from './content';
+import { Brief, chapters, EventDef, events, makeBrief, MASTERY_ROUNDS, Moment, PartnerStyle, pathStates } from './content';
 import { loadProgress, saveRound } from './db';
 import { Feedback, getFeedback, getHint, hasKey, Hint, Line, useConversation } from './gemini';
 
-const c = { bg: '#2C2C2A', card: '#444441', text: '#F1EFE8', dim: '#B4B2A9', faint: '#888780', accent: '#AFA9EC', onAccent: '#26215C', ring: '#3C3489' };
+const c = { bg: '#2C2C2A', card: '#444441', text: '#F1EFE8', dim: '#B4B2A9', faint: '#888780', accent: '#AFA9EC', onAccent: '#26215C', ring: '#3C3489', hill: '#343432', river: '#34395C', road: '#5F5E5A', tree: '#3D5248', gold: '#EF9F27' };
 const MAX_SECONDS = 5 * 60;
 
 // shortcut: a state-based router, because Expo Router needs native modules and another full build.
 // Move to Expo Router when the app gains tabs or deep links.
 type Screen =
   | { name: 'home' }
+  | { name: 'path' }
+  | { name: 'events' }
   | { name: 'event'; event: EventDef }
   | { name: 'brief'; brief: Brief }
   | { name: 'talk'; brief: Brief }
@@ -66,76 +68,144 @@ function Page({ children, actions, back }: { children: ReactNode; actions: React
   );
 }
 
-function Home({ go }: { go: (s: Screen) => void }) {
-  const [tab, setTab] = useState<'path' | 'events'>('path');
+function Landing({ go }: { go: (s: Screen) => void }) {
   const [progress] = useState(loadProgress);
-  const [picked, setPicked] = useState<string | null>(null);
-
-  const chapter = chapters[0];
-  const states = pathStates(chapter.skills, progress.met);
-  const current = chapter.skills[Math.max(0, states.indexOf('current'))];
-  const skill = chapter.skills.find((s) => s.id === picked) ?? current;
-  const met = progress.met[skill.id] ?? 0;
-  const startSkill = (s: Skill) => go({ name: 'brief', brief: makeBrief({ kind: 'skill', skill: s }, progress.met[s.id] ?? 0) });
-
-  const tabs = (
-    <View style={{ flexDirection: 'row', backgroundColor: c.card, borderRadius: 10, padding: 3 }} accessibilityRole="tablist">
-      {(['path', 'events'] as const).map((k) => (
-        <Pressable key={k} accessibilityRole="tab" accessibilityState={{ selected: tab === k }} onPress={() => setTab(k)}
-          style={{ flex: 1, padding: 8, borderRadius: 8, alignItems: 'center', backgroundColor: tab === k ? c.accent : 'transparent' }}>
-          <Text style={{ color: tab === k ? c.onAccent : c.dim, fontSize: 15, fontWeight: '500' }}>{k === 'path' ? 'Path' : 'Events'}</Text>
-        </Pressable>
-      ))}
+  const skills = chapters[0].skills;
+  const states = pathStates(skills, progress.met);
+  const next = skills[Math.max(0, states.indexOf('current'))];
+  const done = states.filter((s) => s === 'mastered').length;
+  const title = (icon: IconName, name: string) => (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingTop: 6 }}>
+      <Ionicons name={icon} size={24} color={c.accent} />
+      <Text style={t.h}>{name}</Text>
     </View>
   );
 
-  if (tab === 'events') {
-    return (
-      <Page actions={null}>
-        {tabs}
-        <Text style={t.h} accessibilityRole="header">What&apos;s coming up?</Text>
-        {events.map((e) => (
-          <Pressable key={e.id} accessibilityRole="button" onPress={() => go({ name: 'event', event: e })}>
-            <Card>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-                <Ionicons name={e.icon as IconName} size={22} color={c.accent} />
-                <View><Text style={t.body}>{e.name}</Text><Text style={t.dim}>{e.blurb}</Text></View>
-              </View>
-            </Card>
-          </Pressable>
-        ))}
-        <Text style={t.dim}>More events are coming later.</Text>
-      </Page>
-    );
-  }
-
   return (
     <Page actions={<>
-      <Card>
-        <Text style={t.dim}>{met >= MASTERY_ROUNDS ? `Mastered · ${met} rounds, getting harder` : `Round ${met + 1} of ${MASTERY_ROUNDS} to master`}</Text>
-        <Text style={t.body}>{skill.name}</Text>
-      </Card>
-      <Button label={skill.id === current.id ? 'Continue' : 'Practise again'} disabled={!hasKey} onPress={() => startSkill(skill)} />
+      <Pressable accessibilityRole="button" accessibilityLabel={`Path. Next: ${next.name}. ${done} of ${skills.length} skills mastered`} onPress={() => go({ name: 'path' })}>
+        <Card outlined>
+          {title('map', 'Path')}
+          <Text style={t.dim}>Next: {next.name}</Text>
+          <View style={{ height: 4, borderRadius: 2, backgroundColor: c.bg, marginVertical: 8 }}>
+            <View style={{ height: 4, borderRadius: 2, backgroundColor: c.accent, width: `${(100 * done) / skills.length}%` }} />
+          </View>
+        </Card>
+      </Pressable>
+      <Pressable accessibilityRole="button" accessibilityLabel="Events. Rehearse a date or networking" onPress={() => go({ name: 'events' })}>
+        <Card>
+          {title('calendar', 'Events')}
+          <Text style={[t.dim, { paddingBottom: 8 }]}>Rehearse a date or networking</Text>
+        </Card>
+      </Pressable>
     </>}>
-      {tabs}
+      <Text style={t.h} accessibilityRole="header">Rep</Text>
+      <Text style={t.dim}>What do you want to practise?</Text>
       {!hasKey && <Text style={t.dim}>No Gemini key found. Add EXPO_PUBLIC_GEMINI_KEY to rep/.env and restart.</Text>}
-      <Text style={t.dim}>Chapter 1 · {chapter.name}</Text>
-      {chapter.skills.map((s, i) => {
-        const state = states[i], on = s.id === skill.id;
-        return (
-          <Pressable key={s.id} accessibilityRole="button" accessibilityLabel={`${s.name}, ${state}`} accessibilityState={{ disabled: state === 'locked', selected: on }}
-            disabled={state === 'locked'} onPress={() => setPicked(s.id)} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 4 }}>
-            <View style={{ width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center', backgroundColor: on ? c.accent : state === 'mastered' ? c.ring : c.card }}>
-              {state === 'mastered' ? <Ionicons name="checkmark" size={18} color={on ? c.onAccent : c.accent} />
-                : state === 'locked' ? <Ionicons name="lock-closed" size={14} color={c.faint} />
-                : <Text style={{ color: on ? c.onAccent : c.text, fontWeight: '500' }}>{i + 1}</Text>}
-            </View>
-            <Text style={[t.body, { color: state === 'locked' ? c.faint : c.text }]}>{s.name}</Text>
-          </Pressable>
-        );
-      })}
-      <Text style={t.dim}>Chapter 2 · Building rapport is coming later.</Text>
     </Page>
+  );
+}
+
+function EventsList({ go }: { go: (s: Screen) => void }) {
+  return (
+    <Page back={() => go({ name: 'home' })} actions={null}>
+      <Text style={t.h} accessibilityRole="header">What&apos;s coming up?</Text>
+      {events.map((e) => (
+        <Pressable key={e.id} accessibilityRole="button" onPress={() => go({ name: 'event', event: e })}>
+          <Card>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+              <Ionicons name={e.icon as IconName} size={22} color={c.accent} />
+              <View><Text style={t.body}>{e.name}</Text><Text style={t.dim}>{e.blurb}</Text></View>
+            </View>
+          </Card>
+        </Pressable>
+      ))}
+      <Text style={t.dim}>More events are coming later.</Text>
+    </Page>
+  );
+}
+
+// Night-map decoration: [x, y, diameter, colour], x and y as fractions of the map's size.
+const scenery: [number, number, number, string][] = [
+  [0.05, 0.22, 280, c.hill], [1, 0.62, 320, c.hill], [0.1, 1, 300, c.hill],
+  [0.6, 0.34, 30, c.tree], [0.1, 0.56, 34, c.tree], [0.9, 0.9, 28, c.tree], [0.14, 0.12, 24, c.tree], [0.56, 0.47, 20, c.tree],
+  [0.45, 0.07, 26, c.dim],
+  [0.3, 0.05, 3, c.faint], [0.6, 0.12, 3, c.faint], [0.45, 0.3, 2, c.faint], [0.95, 0.25, 3, c.faint], [0.04, 0.4, 2, c.faint], [0.7, 0.7, 2, c.faint],
+];
+const ROAD_DOTS = 240; // enough that neighbouring dots overlap into a solid road
+
+// shortcut: the map is drawn from plain views (the road is a row of overlapping dots), because
+// an SVG library is a native module and needs another full build. Swap in real artwork later.
+function PathMap({ go }: { go: (s: Screen) => void }) {
+  const [progress] = useState(loadProgress);
+  const [picked, setPicked] = useState<string | null>(null);
+  const [{ w, h }, setSize] = useState({ w: 0, h: 0 });
+
+  const chapter = chapters[0];
+  const skills = chapter.skills, n = skills.length;
+  const states = pathStates(skills, progress.met);
+  const reached = states.includes('current') ? states.indexOf('current') : n - 1;
+  const current = skills[reached];
+  const skill = skills.find((s) => s.id === picked) ?? current;
+  const met = progress.met[skill.id] ?? 0;
+
+  // The road climbs from the bottom and swings left and right; each skill sits on a bend.
+  // The sine term makes it climb fastest at the bends, which rounds them into hairpins.
+  const at = (p: number) => {
+    const q = p * (n - 1);
+    return { x: w / 2 - (w / 2 - 84) * Math.cos(Math.PI * q), y: h - 62 - ((q + 0.127 * Math.sin(2 * Math.PI * q)) / (n - 1)) * (h - 104) };
+  };
+
+  return (
+    <View style={{ flex: 1, backgroundColor: c.bg }}>
+      <View style={{ paddingTop: 64, paddingHorizontal: 20, paddingBottom: 8, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+        <Pressable accessibilityRole="button" accessibilityLabel="Back" onPress={() => go({ name: 'home' })} hitSlop={12}>
+          <Ionicons name="arrow-back" size={24} color={c.dim} />
+        </Pressable>
+        <View>
+          <Text style={[t.body, { fontWeight: '500' }]} accessibilityRole="header">{chapter.name}</Text>
+          <Text style={t.dim}>Chapter 1 · {states.filter((s) => s === 'mastered').length} of {n} mastered</Text>
+        </View>
+      </View>
+      <View style={{ flex: 1, overflow: 'hidden' }} onLayout={(e) => setSize({ w: e.nativeEvent.layout.width, h: e.nativeEvent.layout.height })}>
+        {w > 0 && <>
+          <View pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={{ position: 'absolute', width: w, height: h }}>
+            {scenery.map(([x, y, d, color], i) => (
+              <View key={i} style={{ position: 'absolute', left: x * w - d / 2, top: y * h - d / 2, width: d, height: d, borderRadius: d / 2, backgroundColor: color }} />
+            ))}
+            <View style={{ position: 'absolute', left: -30, top: h * 0.5, width: w + 60, height: 22, backgroundColor: c.river, transform: [{ rotate: '-7deg' }] }} />
+            {Array.from({ length: ROAD_DOTS }, (_, i) => {
+              const p = i / (ROAD_DOTS - 1), { x, y } = at(p);
+              return <View key={i} style={{ position: 'absolute', left: x - 8, top: y - 8, width: 16, height: 16, borderRadius: 8, backgroundColor: p <= reached / (n - 1) ? c.ring : c.road }} />;
+            })}
+          </View>
+          {skills.map((s, i) => {
+            const state = states[i], locked = state === 'locked', on = s.id === skill.id, stars = Math.min(MASTERY_ROUNDS, progress.met[s.id] ?? 0);
+            const half = state === 'current' ? 27 : 22, { x, y } = at(i / (n - 1));
+            return (
+              <Pressable key={s.id} accessibilityRole="button" accessibilityLabel={`${s.name}, ${state}, ${stars} of ${MASTERY_ROUNDS} stars`} accessibilityState={{ disabled: locked, selected: on }}
+                disabled={locked} onPress={() => setPicked(s.id)} style={{ position: 'absolute', left: x - 75, top: y - half - 15, width: 150, alignItems: 'center', gap: 3 }}>
+                <View style={{ flexDirection: 'row', gap: 1 }}>
+                  {Array.from({ length: MASTERY_ROUNDS }, (_, k) => <Ionicons key={k} name="star" size={12} color={k < stars ? c.gold : c.card} />)}
+                </View>
+                <View style={{ width: half * 2, height: half * 2, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: locked ? c.card : c.accent, borderWidth: 2, borderColor: on ? c.text : c.bg }}>
+                  <Ionicons name={locked ? 'lock-closed' : i === n - 1 ? 'trophy' : 'star'} size={half - 4} color={locked ? c.faint : c.onAccent} />
+                </View>
+                <Text numberOfLines={1} style={{ color: locked ? c.faint : c.text, fontSize: 12, backgroundColor: c.bg, paddingHorizontal: 6, paddingVertical: 1, borderRadius: 8, overflow: 'hidden' }}>{s.name}</Text>
+              </Pressable>
+            );
+          })}
+        </>}
+      </View>
+      <View style={{ padding: 20, paddingBottom: 40, gap: 12 }}>
+        <Card>
+          <Text style={t.dim}>{met >= MASTERY_ROUNDS ? `Mastered · ${met} rounds, getting harder` : `Round ${met + 1} of ${MASTERY_ROUNDS} to master`}</Text>
+          <Text style={t.body}>{skill.name}</Text>
+        </Card>
+        <Button label={skill.id === current.id ? 'Continue' : 'Practise again'} disabled={!hasKey}
+          onPress={() => go({ name: 'brief', brief: makeBrief({ kind: 'skill', skill }, met) })} />
+      </View>
+    </View>
   );
 }
 
@@ -146,7 +216,7 @@ function EventDetail({ event, go }: { event: EventDef; go: (s: Screen) => void }
   const styleNames: Record<PartnerStyle, string> = { easy: 'Easy-going', reserved: 'Reserved', hard: 'Hard to read' };
 
   return (
-    <Page back={() => go({ name: 'home' })} actions={
+    <Page back={() => go({ name: 'events' })} actions={
       <Button label="Start rehearsal" disabled={!hasKey} onPress={() => go({ name: 'brief', brief: makeBrief({ kind: 'moment', event, moment, style }, 0) })} />
     }>
       <Text style={t.dim}>{event.name}</Text>
@@ -176,7 +246,7 @@ function EventDetail({ event, go }: { event: EventDef; go: (s: Screen) => void }
 
 function BriefScreen({ brief, go }: { brief: Brief; go: (s: Screen) => void }) {
   const src = brief.source;
-  const back = () => go(src.kind === 'moment' ? { name: 'event', event: src.event } : { name: 'home' });
+  const back = () => go(src.kind === 'moment' ? { name: 'event', event: src.event } : { name: 'path' });
   return (
     <Page back={back} actions={<>
       <Text style={[t.dim, { textAlign: 'center' }]}>Your microphone will be on. Practise somewhere private.</Text>
@@ -298,7 +368,7 @@ function FeedbackScreen({ brief, lines, go }: { brief: Brief; lines: Line[]; go:
   }, [attempt]);
 
   const again = () => go({ name: 'brief', brief: makeBrief(brief.source, loadProgress().met[brief.ref] ?? 0) });
-  const done = () => go(brief.source.kind === 'moment' ? { name: 'event', event: brief.source.event } : { name: 'home' });
+  const done = () => go(brief.source.kind === 'moment' ? { name: 'event', event: brief.source.event } : { name: 'path' });
 
   return (
     <Page actions={<><Button label="New round" onPress={again} /><Button label="Done for now" quiet onPress={done} /></>}>
@@ -333,7 +403,9 @@ export default function App() {
   return (
     <View style={{ flex: 1, backgroundColor: c.bg }}>
       <StatusBar style="light" />
-      {screen.name === 'home' ? <Home key={visit} go={go} />
+      {screen.name === 'home' ? <Landing key={visit} go={go} />
+        : screen.name === 'path' ? <PathMap key={visit} go={go} />
+        : screen.name === 'events' ? <EventsList key={visit} go={go} />
         : screen.name === 'event' ? <EventDetail key={visit} event={screen.event} go={go} />
         : screen.name === 'brief' ? <BriefScreen key={visit} brief={screen.brief} go={go} />
         : screen.name === 'talk' ? <Talk key={visit} brief={screen.brief} go={go} />
