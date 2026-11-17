@@ -12,19 +12,25 @@ The content is based on a research summary of the conversation literature: studi
 
 ## Screens
 
-| Path | Events | Event moments |
+| Home | Path | Events |
 |---|---|---|
-| <img src="docs/screens/1-path.png" width="220" alt="Path screen: a chapter of skills, the first one current and the rest locked, with a Continue button at the bottom"> | <img src="docs/screens/2-events.png" width="220" alt="Events screen: a list with A date and Networking"> | <img src="docs/screens/3-event.png" width="220" alt="A date: partner style choices and five moments to rehearse, with Start rehearsal at the bottom"> |
+| <img src="docs/screens/0-home.png" width="220" alt="Home screen: two large buttons in the middle, Path showing the next skill and a progress bar, and Events"> | <img src="docs/screens/1-path.png" width="220" alt="Path screen: a night map with a winding road and a star-rated stop for each skill, the first one current and the rest locked, with a Continue button at the bottom"> | <img src="docs/screens/2-events.png" width="220" alt="Events screen: a back arrow and a list with A date and Networking"> |
 
-| Lesson | Conversation | Feedback |
+| Event moments | Lesson | Conversation |
 |---|---|---|
-| <img src="docs/screens/4-lesson.png" width="220" alt="Lesson screen: the skill explained, an example, the scene and the goal"> | <img src="docs/screens/5-conversation.png" width="220" alt="Conversation screen: the goal, a circle for the character Dana, her last line, and Mic, Stuck and Type buttons above End conversation"> | <img src="docs/screens/6-feedback.png" width="220" alt="Feedback screen: goal met, what worked, and a line to try next time"> |
+| <img src="docs/screens/3-event.png" width="220" alt="A date: partner style choices and five moments to rehearse, with Start rehearsal at the bottom"> | <img src="docs/screens/4-lesson.png" width="220" alt="Lesson screen: the skill explained, an example, the scene and the goal"> | <img src="docs/screens/5-conversation.png" width="220" alt="Conversation screen: the goal, a circle for the character Dana, her last line, and Mic, Stuck and Type buttons above End conversation"> |
+
+| Feedback |
+|---|
+| <img src="docs/screens/6-feedback.png" width="220" alt="Feedback screen: goal met, what worked, and a line to try next time"> |
 
 ## Features
 
 **Two ways to practise**
 
-- **Path.** A roadmap of skills that unlock in order: greeting and opening, open-ended questions, follow-up questions, picking up details, and introducing yourself. A skill is mastered after three rounds in which you meet its goal. After that it stays open, and your practice partner gets harder every three rounds. Each chapter ends in a mixed-practice round that never runs out.
+The app opens on two buttons, Path and Events. A back arrow in either one returns you there to switch.
+
+- **Path.** A night map with a winding road. Each skill is a stop on the road, and they unlock in order: greeting and opening, open-ended questions, follow-up questions, picking up details, and introducing yourself. Each round in which you meet a skill's goal earns it a star, and three stars master it. After that it stays open, and your practice partner gets harder every three rounds. Each chapter ends in a mixed-practice round that never runs out.
 - **Events.** Rehearsal for something coming up. Pick an event (a date or networking, so far), choose how the other person behaves (easy-going, reserved or hard to read), and rehearse one moment at a time, such as the first five minutes or leaving gracefully.
 
 **In a conversation**
@@ -46,7 +52,7 @@ The content is based on a research summary of the conversation literature: studi
 ```mermaid
 flowchart TD
     Home[Home] --> Choice{Path or Events?}
-    Choice -->|Path| Skill[Next skill on the roadmap]
+    Choice -->|Path| Skill[Next skill on the map]
     Choice -->|Events| Moment[Pick an event, a moment and a partner style]
     Skill --> Lesson[Lesson: the skill, an example and your goal]
     Moment --> Brief[Brief: a tip, the scene and your goal]

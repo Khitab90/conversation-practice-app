@@ -82,7 +82,9 @@ function Landing({ go }: { go: (s: Screen) => void }) {
   );
 
   return (
-    <Page actions={<>
+    <View style={{ flex: 1, backgroundColor: c.bg, justifyContent: 'center', padding: 20, gap: 12 }}>
+      <Text style={[t.h, { textAlign: 'center' }]} accessibilityRole="header">Rep</Text>
+      <Text style={[t.dim, { textAlign: 'center', marginBottom: 12 }]}>What do you want to practise?</Text>
       <Pressable accessibilityRole="button" accessibilityLabel={`Path. Next: ${next.name}. ${done} of ${skills.length} skills mastered`} onPress={() => go({ name: 'path' })}>
         <Card outlined>
           {title('map', 'Path')}
@@ -98,11 +100,8 @@ function Landing({ go }: { go: (s: Screen) => void }) {
           <Text style={[t.dim, { paddingBottom: 8 }]}>Rehearse a date or networking</Text>
         </Card>
       </Pressable>
-    </>}>
-      <Text style={t.h} accessibilityRole="header">Rep</Text>
-      <Text style={t.dim}>What do you want to practise?</Text>
-      {!hasKey && <Text style={t.dim}>No Gemini key found. Add EXPO_PUBLIC_GEMINI_KEY to rep/.env and restart.</Text>}
-    </Page>
+      {!hasKey && <Text style={[t.dim, { textAlign: 'center' }]}>No Gemini key found. Add EXPO_PUBLIC_GEMINI_KEY to rep/.env and restart.</Text>}
+    </View>
   );
 }
 
